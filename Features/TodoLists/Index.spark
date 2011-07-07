@@ -1,0 +1,25 @@
+﻿<viewdata model="TodoListFubuMVC.Features.TodoLists.ShowTodoListsOutput" />
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>FubuMVC TodoList</title>${this.CSS("application.css")}
+</head>
+<body>
+    <div id="views">
+        <div id="tasks">
+            <h1>
+                Your Todo Lists</h1>
+            <div class="items">
+                <div class="item" each='var item in Model.Items'>
+                    <div class="view">
+                        <a href="${Urls.UrlFor(item)}">${item.Text}</a>
+                    </div>
+                </div>
+            </div>
+            <footer> 
+                  <a class="clear">Start a new list</a> 
+              </footer>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+﻿<viewdata model="TodoListFubuMVC.Features.Todos.TodoItem" />
+<use namespace="TodoListFubuMVC.Features.TodoLists"/>
+<!DOCTYPE html>
+<html>
+    <head>
+        ${this.CSS("application.css")}
+
+        #this.Script("todolist");
+       
+        ${this.WriteScriptTags()}
+        <script type="text/html" id="tasksTemplate">
+            {{each(i, task) tasks()}}
+
+            <div class="item" data-bind="css: { done: isDone, editing: isBeingEdited }">
+                <div class="view" data-bind="event: { dblclick: function(event){ allowEdit(event, task);  } } " title="Double click to edit...">
+                    <input type="checkbox" data-bind="checked: isDone">
+                        <span>
+                            {{= name }}
+                        </span>
+                        <a class="destroy" data-bind="click: function(){ tasks.remove( task); } "></a>
+                    </div>
+                <div class="edit">
+                    <input type="text" data-bind="value: name, event: {  blur: function(event){ endEdit(event,task); } }">
+                </div>
+            </div>
+
+            {{/each}}
+        </script>
+
+
+    </head>
+    <body>
+        <div id="views">
+                    <a href="${Urls.UrlFor<ShowTodoLists>(a=>a.get_Index())}">Home</a>
+            <div id="tasks">
+                <h1>${Model.Title}</h1>
+
+                <p>
+                    <input id="addTaskInput" data-bind="value: taskName, event:{ keyup: addTask }" type="text" placeholder="What needs to be done?"/>
+                </p>
+
+                <div class="items" data-bind="template: 'tasksTemplate'" ></div>
+
+                <footer>
+                    <a class="clear" data-bind="event:{click: clearCompleted}">Clear completed</a>
+                    <div class="count">
+                        <span data-bind="text: openTasks()">&nbsp;</span> left
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <script type="text/javascript" language="javascript">
+
+            jQuery(function(){
+            var todosAddress = "${Model.DocumentId}";
+
+            var isBinded = false;
+            var task = function(name, isDone){
+            this.name = new ko.observable(name);
+            this.isDone = new ko.observable(isDone);
+            this.isBeingEdited = new ko.observable(false);
+            };
+            var viewModel = {
+            tasks: new ko.observableArray(new Array()),
+            taskName: new ko.observable(""),
+            };
+
+            viewModel.saveTasks = function(value){
+
+            if( isBinded ){
+            var allTasks = value;
+            var state = new Array();
+
+
+            for(var taskIdx=0; taskIdx < allTasks.length; taskIdx++ ){
+                        var theTask = allTasks[taskIdx];
+                        state.push( { name: theTask.name(), isDone: theTask.isDone() } );
+                    }
+                    localStorage[todosAddress] = JSON.stringify(state);
+                }
+            };
+
+            
+            viewModel.load = function(){
+             var persistedTasks = new Array();
+                var fromStorage = localStorage[todosAddress]
+
+                if(undefined != fromStorage && null !== fromStorage){
+            persistedTasks = JSON.parse(fromStorage);
+            }
+
+            for(var idx = 0 ; idx < persistedTasks.length; idx++)
+                {
+                    viewModel.tasks.push( new task( persistedTasks[idx]['name'], persistedTasks[idx]['isDone'] ) );
+                }
+            };
+            viewModel.openTasks = new ko.dependentObservable(function() {
+
+                var numTasks = this.tasks().length;
+                var allTasks = this.tasks();
+
+                for(var taskIdx=0; taskIdx < allTasks.length; taskIdx++ ){
+                    var theTask = allTasks[taskIdx];
+                    if( theTask.isDone() ) numTasks --;
+                }
+
+                viewModel.saveTasks(allTasks);
+
+                return numTasks;
+            }, viewModel);
+            
+            viewModel.addTask = function(event){
+            
+                if(event.keyCode == '13'){
+                    var taskName = viewModel.taskName();
+                    
+                    viewModel.tasks.push( new task( taskName, false) );
+
+                    viewModel.taskName("");
+                }
+                
+            };
+            viewModel.allowEdit = function(event, theTask){ 
+
+                theTask.isBeingEdited(true);
+            };
+            viewModel.endEdit = function(event, theTask){
+                theTask.isBeingEdited(false);
+            };
+            viewModel.clearCompleted = new ko.dependentObservable(
+                    {
+                    owner: viewModel,
+                    read: function(){},
+                    write: function(value){
+                    if( isBinded ){
+                        var removeStack = new Array();
+                        var allTasks = viewModel.tasks();
+                        for(var taskIdx=0; taskIdx < allTasks.length; taskIdx++ ){
+                            var theTask = allTasks[taskIdx];				
+                            if( theTask.isDone() ) removeStack.push( theTask );
+                        }
+
+                        for(var taskIdx=0; taskIdx < removeStack.length; taskIdx++ ){
+                            console.log(removeStack[taskIdx]);
+                            viewModel.tasks.remove( removeStack[taskIdx] ); 
+                        }
+                    }
+                }
+                });
+
+
+            viewModel.load();
+
+            ko.applyBindings(viewModel);
+            isBinded = true;
+
+        });
+        </script>
+    </body>
+</html>
